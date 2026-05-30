@@ -16,8 +16,8 @@ function formatBytes(bytes) {
   }
 
 cmd({
-  pattern: "url2",
-  alias: ["uploader", "u"],
+  pattern: "url",
+  alias: ["uploade", "tourl"],
   react: '🖇',
   desc: "Convert media to Catbox URL (via Uguu)",
   category: "utility",
