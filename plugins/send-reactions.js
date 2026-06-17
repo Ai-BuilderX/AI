@@ -5,12 +5,17 @@ import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// Helper function to get GIF URL from nekos.best API
+// ========== REPLACE THIS PART ==========
 async function getNekosGif(action) {
     const apiUrl = `https://nekos.best/api/v2/${action}`;
-    let res = await axios.get(apiUrl);
+    let res = await axios.get(apiUrl, {
+        headers: {
+            "User-Agent": "KHAN-MD/1.0 (https://github.com)"
+        }
+    });
     return res.data.results[0].url;
 }
+// =======================================
 
 // ==================== CRY COMMAND ====================
 cmd({
