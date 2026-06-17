@@ -5,17 +5,19 @@ import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// ========== REPLACE THIS PART ==========
+// ========== FIXED: Using your Render.com link ==========
 async function getNekosGif(action) {
     const apiUrl = `https://nekos.best/api/v2/${action}`;
-    let res = await axios.get(apiUrl, {
+    
+    const response = await axios.get(apiUrl, {
         headers: {
-            "User-Agent": "KHAN-MD/1.0 (https://github.com)"
+            // ✅ Your Render.com link (exactly what docs allow)
+            "User-Agent": "KHAN-MD/1.0 (https://khanmd-pair.onrender.com)"
         }
     });
-    return res.data.results[0].url;
+
+    return response.data.results[0].url;
 }
-// =======================================
 
 // ==================== CRY COMMAND ====================
 cmd({
