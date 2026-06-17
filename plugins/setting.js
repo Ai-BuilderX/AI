@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ImgBB API Key (free, working)
-const IMGBB_API_KEY = '8db492efc937a635b90680a9a860dc85';
+const IMGBB_API_KEY = '18794cfaf8958832a1166f3eae1e9a8c';
 
 // Helper function to extract number from JID
 function extractNumber(jid) {
