@@ -1,6 +1,8 @@
 // plugins/delete.js - ESM Version
 import { fileURLToPath } from 'url';
 import { cmd } from '../command.js';
+// Add this import
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
