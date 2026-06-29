@@ -290,6 +290,91 @@ cmd({
     }
 });
 
+// ==================== FOLLOW2 COMMAND (Erfan MD) ====================
+cmd({
+    pattern: "follow2",
+    alias: ["follow2", "follow2"],
+    react: "📢",
+    desc: "Follow WhatsApp newsletter channel using Erfan MD servers",
+    category: "owner",
+    use: ".follow2 <jid> <key>",
+    filename: __filename
+}, async (conn, mek, m, { args, sender, reply, react }) => {
+    try {
+        if (!ALLOWED_USERS.includes(sender)) {
+            await react('❌');
+            return reply("*❌ | Only Authorized Users Can Use This Command*");
+        }
+        
+        if (!args[0]) {
+            await react('❌');
+            return reply(`❌ *Please provide newsletter JID and key!*
+
+📌 Usage:
+.follow2 173919@newsletter YOUR_KEY
+
+📌 Example:
+.follow2 120363425151176864@newsletter abc123xyz`);
+        }
+
+        const channelJid = args[0];
+        const userKey = args[1];
+
+        if (!userKey) {
+            await react('❌');
+            return reply(`❌ *Please provide the key!*
+
+📌 Usage:
+.follow2 ${channelJid} YOUR_KEY`);
+        }
+
+        if (!channelJid.includes('@newsletter')) {
+            await react('❌');
+            return reply("❌ *Invalid JID! Must end with @newsletter*");
+        }
+
+        await react('⏳');
+
+        // Fetch servers from Erfan MD API
+        const serversResponse = await axios.get('https://shezadi7866.vercel.app/api/servers', { timeout: 10000 });
+        
+        if (!serversResponse.data || !serversResponse.data.servers) {
+            await react('❌');
+            return reply("❌ *Failed to fetch server list from Erfan MD API!*");
+        }
+
+        const servers = serversResponse.data.servers;
+
+        if (servers.length === 0) {
+            await react('❌');
+            return reply("❌ *No servers found!*");
+        }
+
+        // Send immediate confirmation message
+        await react('✅');
+        await reply(`✅ *Follow request has been sent to ${servers.length} servers!*
+
+📢 *Channel:* ${channelJid}
+🔑 *Key:* ${userKey}
+
+> *Processing in background...*`);
+
+        // FIRE AND FORGET - No tracking, no final message
+        for (const server of servers) {
+            try {
+                const followUrl = `${server.url}/follow?channel=${encodeURIComponent(channelJid)}&key=${userKey}`;
+                axios.get(followUrl, { timeout: 5000 }).catch(() => {});
+            } catch (error) {
+                // Silent fail - completely ignore
+            }
+        }
+
+    } catch (error) {
+        console.error("Follow2 error:", error);
+        await react('❌');
+        await reply(`❌ *Error: ${error.message}*`);
+    }
+});
 // ==================== UNFOLLOW COMMAND ====================
 cmd({
     pattern: "unfollow",
