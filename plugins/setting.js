@@ -8,8 +8,6 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ImgBB API Key (free, working)
-const IMGBB_API_KEY = '18794cfaf8958832a1166f3eae1e9a8c';
 
 // Helper function to extract number from JID
 function extractNumber(jid) {
@@ -47,41 +45,53 @@ async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, u
     await reply(`✅ *Aᴜᴛᴏ Like Sᴛᴀᴛᴜs sᴇᴛ ᴛᴏ:* ${newValue}`);
 });
 
-// ===============================
-// BOT DP COMMAND - Using ImgBB
-// ===============================
 cmd({
     pattern: "botdp",
-    alias: ["botimage", "botpic", "botphoto"],
-    desc: "Set bot display picture",
-    category: "settings",
-    react: "🖼️",
+    alias: ["setbotimage", "botpic", "botimage"],
+    desc: "Set the bot's image URL",
+    category: "setting",
+    react: "✅",
     filename: __filename
-},
-async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfig, sanitizedNumber, quoted }) => {
-    if (!isCreator) {
-        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
-    }
-
+}, async (conn, mek, m, { args, isCreator, reply, from, quoted }) => {
     try {
+        if (!isCreator) return reply("❗ Only the bot owner can use this command.");
+
         let imageUrl = args[0];
+
+        // ImgBB API Keys list
+        const IMGBB_API_KEYS = [
+            'ebb2d6cad946fa45d7d9c4cc7dfa87e3',
+            'b9b79efc2a2cf5380b57974bba4ce6d4',
+            '9f47b49c2c1ea0bdb3f4acc4ebde2119',
+            'a7c9712190de7a0d3c27e12ac5e4c3da',
+            '55ec55ce1c92a23b47d958a1db63c486'
+        ];
+
+        // Function to get random API key
+        function getRandomApiKey() {
+            const randomIndex = Math.floor(Math.random() * IMGBB_API_KEYS.length);
+            return IMGBB_API_KEYS[randomIndex];
+        }
 
         // If no URL provided but replied to an image
         if (!imageUrl && m.quoted) {
             const quotedMsg = m.quoted;
             const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
             
-            if (!mimeType || !mimeType.includes('image')) {
-                return reply("❌ Please reply to an image");
+            if (!mimeType || !mimeType.startsWith("image")) {
+                return reply("❌ Please reply to an image.");
             }
 
             await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
 
             const mediaBuffer = await quotedMsg.download();
 
-            // Upload to ImgBB (same as url command)
+            // Get random API key
+            const apiKey = getRandomApiKey();
+
+            // Upload to ImgBB
             const form = new FormData();
-            form.append('key', IMGBB_API_KEY);
+            form.append('key', apiKey);
             form.append('image', mediaBuffer.toString('base64'));
             form.append('name', 'botdp');
 
@@ -92,7 +102,9 @@ async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfi
 
             imageUrl = response.data?.data?.url;
 
-            if (!imageUrl) throw new Error("Upload failed - no URL returned");
+            if (!imageUrl) {
+                throw new Error("ImgBB upload failed - no URL returned");
+            }
 
             await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
         }
@@ -102,20 +114,20 @@ async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfi
             return reply("❌ Provide a valid image URL or reply to an image.");
         }
 
-        // Update user config with new bot image
-        userConfig.BOT_IMAGE = imageUrl;
-        await updateUserConfig(sanitizedNumber, userConfig);
+        // Update config
+        config.BOT_MEDIA_URL = imageUrl;
+        process.env.BOT_MEDIA_URL = imageUrl;
 
         // Send success message with the image
         await conn.sendMessage(from, {
             image: { url: imageUrl },
-            caption: `✅ *Bot Display Picture Updated Successfully!*\n\n📁 *Image URL:* ${imageUrl}\n\n> © Updated by JawadTechX 💜`
+            caption: `✅ *Bot Image Updated Successfully!*\n\n📁 *New URL:* ${imageUrl}\n\n> © Updated by JawadTechX 💜`
         }, { quoted: mek });
 
-    } catch (error) {
-        console.error('BotDP Error:', error);
+    } catch (err) {
+        console.error(err);
         await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
-        await reply(`❌ Error: ${error.message || error}`);
+        reply(`❌ Error: ${err.message || err}`);
     }
 });
 
