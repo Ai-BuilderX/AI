@@ -46,17 +46,23 @@ async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, u
     await reply(`✅ *Aᴜᴛᴏ Like Sᴛᴀᴛᴜs sᴇᴛ ᴛᴏ:* ${newValue}`);
 });
 
+// ===============================
+// BOT DP COMMAND - Using ImgBB
+// ===============================
 cmd({
     pattern: "botdp",
-    alias: ["setbotimage", "botpic", "botimage"],
-    desc: "Set the bot's image URL",
-    category: "setting",
-    react: "✅",
+    alias: ["botimage", "botpic", "botphoto"],
+    desc: "Set bot display picture",
+    category: "settings",
+    react: "🖼️",
     filename: __filename
-}, async (conn, mek, m, { args, isCreator, reply, from, quoted }) => {
-    try {
-        if (!isCreator) return reply("❗ Only the bot owner can use this command.");
+},
+async (conn, mek, m, { from, reply, isCreator, args, updateUserConfig, userConfig, sanitizedNumber, quoted }) => {
+    if (!isCreator) {
+        return reply("*📛 ᴛʜɪs ɪs ᴀɴ ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅ.*");
+    }
 
+    try {
         let imageUrl = args[0];
 
         // ImgBB API Keys list
@@ -79,8 +85,8 @@ cmd({
             const quotedMsg = m.quoted;
             const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
             
-            if (!mimeType || !mimeType.startsWith("image")) {
-                return reply("❌ Please reply to an image.");
+            if (!mimeType || !mimeType.includes('image')) {
+                return reply("❌ Please reply to an image");
             }
 
             await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
@@ -103,9 +109,7 @@ cmd({
 
             imageUrl = response.data?.data?.url;
 
-            if (!imageUrl) {
-                throw new Error("ImgBB upload failed - no URL returned");
-            }
+            if (!imageUrl) throw new Error("Upload failed - no URL returned");
 
             await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
         }
@@ -115,20 +119,20 @@ cmd({
             return reply("❌ Provide a valid image URL or reply to an image.");
         }
 
-        // Update config
-        config.BOT_MEDIA_URL = imageUrl;
-        process.env.BOT_MEDIA_URL = imageUrl;
+        // Update user config with new bot image
+        userConfig.BOT_IMAGE = imageUrl;
+        await updateUserConfig(sanitizedNumber, userConfig);
 
         // Send success message with the image
         await conn.sendMessage(from, {
             image: { url: imageUrl },
-            caption: `✅ *Bot Image Updated Successfully!*\n\n📁 *New URL:* ${imageUrl}\n\n> © Updated by JawadTechX 💜`
+            caption: `✅ *Bot Display Picture Updated Successfully!*\n\n📁 *Image URL:* ${imageUrl}\n\n> © Updated by JawadTechX 💜`
         }, { quoted: mek });
 
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error('BotDP Error:', error);
         await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
-        reply(`❌ Error: ${err.message || err}`);
+        await reply(`❌ Error: ${error.message || error}`);
     }
 });
 
