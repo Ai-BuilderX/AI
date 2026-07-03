@@ -1,4 +1,3 @@
-// JAWAD MD
 
 import { cmd } from '../command.js';
 import axios from 'axios';
