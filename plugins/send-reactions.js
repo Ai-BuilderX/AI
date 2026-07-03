@@ -5,18 +5,11 @@ import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 
-// ========== FIXED: Using your Render.com link ==========
+// ========== UPDATED: Using your new Vercel API (No Headers) ==========
 async function getNekosGif(action) {
-    const apiUrl = `https://nekos.best/api/v2/${action}`;
-    
-    const response = await axios.get(apiUrl, {
-        headers: {
-            // ✅ Your Render.com link (exactly what docs allow)
-            "User-Agent": "KHAN-MD/1.0 (https://khanmd-pair.onrender.com)"
-        }
-    });
-
-    return response.data.results[0].url;
+    const apiUrl = `https://jawadtech-dev.vercel.app/api/gif?category=${action}`;
+    const response = await axios.get(apiUrl);
+    return response.data.result;
 }
 
 // ==================== CRY COMMAND ====================
