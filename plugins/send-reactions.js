@@ -1,3 +1,5 @@
+// KHAN MD 
+
 import { fileURLToPath } from 'url';
 import { cmd } from '../command.js';
 import { fetchGif, gifToVideo } from '../lib/fetchgif.js';
