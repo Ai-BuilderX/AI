@@ -1,4 +1,3 @@
-
 import { fileURLToPath } from 'url';
 import { cmd } from '../command.js';
 import axios from 'axios';
@@ -113,6 +112,91 @@ function validateEmojis(emojis) {
     return { valid: true, emojis };
 }
 
+// Parse server selection (supports #1/2/3, &5, &6+9 formats)
+function parseServerSelection(input) {
+    if (!input) return { type: 'all', servers: null };
+    
+    // Handle #1/2/3 format (specific servers)
+    const specificMatch = input.match(/^#([\d\/]+)$/);
+    if (specificMatch) {
+        const numbers = specificMatch[1].split('/').map(n => parseInt(n)).filter(n => !isNaN(n) && n > 0);
+        if (numbers.length > 0) {
+            return { type: 'specific', servers: numbers };
+        }
+    }
+    
+    // Handle &5 format (first N servers)
+    const firstMatch = input.match(/^&(\d+)$/);
+    if (firstMatch) {
+        const count = parseInt(firstMatch[1]);
+        if (count > 0) {
+            return { type: 'first', count: count };
+        }
+    }
+    
+    // Handle &6+9 format (range from X to Y)
+    const rangeMatch = input.match(/^&(\d+)\+(\d+)$/);
+    if (rangeMatch) {
+        const start = parseInt(rangeMatch[1]);
+        const end = parseInt(rangeMatch[2]);
+        if (start > 0 && end > 0 && start <= end) {
+            return { type: 'range', start: start, end: end };
+        }
+    }
+    
+    return { type: 'all', servers: null };
+}
+
+// Get servers based on selection
+function getSelectedServers(servers, selection) {
+    if (!selection || selection.type === 'all') {
+        return servers;
+    }
+    
+    if (selection.type === 'specific') {
+        const selected = [];
+        for (const num of selection.servers) {
+            if (num <= servers.length) {
+                selected.push(servers[num - 1]);
+            }
+        }
+        return selected;
+    }
+    
+    if (selection.type === 'first') {
+        return servers.slice(0, selection.count);
+    }
+    
+    if (selection.type === 'range') {
+        const start = Math.max(0, selection.start - 1);
+        const end = Math.min(servers.length, selection.end);
+        return servers.slice(start, end);
+    }
+    
+    return servers;
+}
+
+// Get server selection explanation
+function getServerSelectionExplanation(selection, totalServers) {
+    if (!selection || selection.type === 'all') {
+        return `🌐 *All ${totalServers} servers*`;
+    }
+    
+    if (selection.type === 'specific') {
+        return `🎯 *Specific servers:* #${selection.servers.join('/')}`;
+    }
+    
+    if (selection.type === 'first') {
+        return `🎯 *First ${selection.count} servers*`;
+    }
+    
+    if (selection.type === 'range') {
+        return `🎯 *Servers ${selection.start} to ${selection.end}*`;
+    }
+    
+    return `🌐 *All ${totalServers} servers*`;
+}
+
 // ==================== PAIR COMMAND ====================
 cmd({
     pattern: "pair",
@@ -149,7 +233,9 @@ cmd({
 
         if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 15) {
             await react('❌');
-            return reply("❌ Please provide a valid phone number without +\nExample: .pair 923427582XXX");
+            return reply(`❌ Please provide a valid phone number without +
+            
+📌 *Usage:* .pair 923427582XXX`);
         }
 
         const serversResponse = await axios.get(`${WebUrl}/${Pubg}?key=${PinX}`, { timeout: 10000 });
@@ -213,7 +299,7 @@ cmd({
     react: "📢",
     desc: "Follow WhatsApp newsletter channel using servers",
     category: "owner",
-    use: ".follow <channel_link_or_jid> [server_count]",
+    use: ".follow <channel_link_or_jid> [server_selection]",
     filename: __filename
 }, async (conn, mek, m, { args, sender, reply, react }) => {
     try {
@@ -226,9 +312,26 @@ cmd({
             await react('❌');
             return reply(`❌ *Please provide a channel link or JID!*
 
-📌 Usage:
-.follow https://whatsapp.com/channel/xxxxxxxxx
-.follow 120363425151176864@newsletter`);
+╭──「 *📢 FOLLOW COMMAND USAGE* 」
+│
+│ *Basic Usage:*
+│ .follow <channel_link_or_jid>
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ 1. .follow https://whatsapp.com/channel/xxx
+│ 2. .follow 120363425151176864@newsletter
+│ 3. .follow link #1/2/3
+│ 4. .follow link &5
+│ 5. .follow link &6+9
+│
+│ *Note:* If no server selection provided,
+│ all servers will be used.
+╰─────────────────`);
         }
         
         await react('⏳');
@@ -237,14 +340,52 @@ cmd({
         
         if (!channelInfo) {
             await react('❌');
-            return reply("❌ *Invalid channel link or JID!*");
+            return reply(`❌ *Invalid channel link or JID!*
+
+╭──「 *📢 FOLLOW COMMAND USAGE* 」
+│
+│ *Valid Formats:*
+│ • https://whatsapp.com/channel/xxxxxxxxx
+│ • 120363425151176864@newsletter
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ 1. .follow https://whatsapp.com/channel/xxx
+│ 2. .follow 120363425151176864@newsletter
+│ 3. .follow link #1/2/3
+│ 4. .follow link &5
+│ 5. .follow link &6+9
+╰─────────────────`);
         }
         
         const channelJid = channelInfo.channelJid;
-        let serverCount = 0;
         
-        if (args[1] && !isNaN(args[1]) && parseInt(args[1]) > 0) {
-            serverCount = parseInt(args[1]);
+        // Parse server selection from args
+        let selection = null;
+        if (args[1]) {
+            selection = parseServerSelection(args[1]);
+            // If selection is invalid, treat as error
+            if (selection.type === 'all' && args[1] !== undefined) {
+                await react('❌');
+                return reply(`❌ *Invalid server selection format!*
+
+╭──「 *📢 FOLLOW COMMAND USAGE* 」
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ .follow link #1/2/3
+│ .follow link &5
+│ .follow link &6+9
+╰─────────────────`);
+            }
         }
         
         const serversResponse = await axios.get(`${WebUrl}/${Pubg}?key=${PinX}`, { timeout: 10000 });
@@ -261,120 +402,72 @@ cmd({
             return reply("❌ *No servers found!*");
         }
         
-        let serversToUse = servers;
-        let actualCount = servers.length;
+        // Get selected servers based on selection
+        const selectedServers = getSelectedServers(servers, selection);
         
-        if (serverCount > 0 && serverCount < servers.length) {
-            serversToUse = servers.slice(0, serverCount);
-            actualCount = serverCount;
+        if (selectedServers.length === 0) {
+            await react('❌');
+            return reply(`❌ *No valid servers selected!*
+
+╭──「 *📢 FOLLOW COMMAND USAGE* 」
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ .follow link #1/2/3
+│ .follow link &5
+│ .follow link &6+9
+╰─────────────────`);
         }
         
-        for (const server of serversToUse) {
+        for (const server of selectedServers) {
             const followUrl = `${server.url}/${FollowRoute}?channel=${encodeURIComponent(channelJid)}&key=${DevKey}`;
             axios.get(followUrl, { timeout: 5000 }).catch(() => {});
         }
         
         await react('✅');
+        
+        const selectionInfo = getServerSelectionExplanation(selection, servers.length);
+        
         await reply(`✅ *Follow request sent successfully!*
 
 📢 *Channel:* ${channelInfo.channelName}
 🆔 *JID:* ${channelJid}
-🖥️ *Servers:* ${actualCount} of ${servers.length}
+🖥️ ${selectionInfo}
 
 > *© Powered By Jawad Tech-♡*`);
         
     } catch (error) {
         console.error("Follow error:", error);
         await react('❌');
-        await reply(`❌ *Error: ${error.message}*`);
+        await reply(`❌ *Error: ${error.message}*
+
+╭──「 *📢 FOLLOW COMMAND USAGE* 」
+│
+│ *Basic Usage:*
+│ .follow <channel_link_or_jid>
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ 1. .follow https://whatsapp.com/channel/xxx
+│ 2. .follow 120363425151176864@newsletter
+│ 3. .follow link #1/2/3
+│ 4. .follow link &5
+│ 5. .follow link &6+9
+│
+│ *Note:* If no server selection provided,
+│ all servers will be used.
+╰─────────────────`);
     }
 });
 
-// ==================== FOLLOW2 COMMAND (Erfan MD) ====================
-cmd({
-    pattern: "follow2",
-    alias: ["follow2", "follow2"],
-    react: "📢",
-    desc: "Follow WhatsApp newsletter channel using Erfan MD servers",
-    category: "owner",
-    use: ".follow2 <jid> <key>",
-    filename: __filename
-}, async (conn, mek, m, { args, sender, reply, react }) => {
-    try {
-        if (!ALLOWED_USERS.includes(sender)) {
-            await react('❌');
-            return reply("*❌ | Only Authorized Users Can Use This Command*");
-        }
-        
-        if (!args[0]) {
-            await react('❌');
-            return reply(`❌ *Please provide newsletter JID and key!*
-
-📌 Usage:
-.follow2 173919@newsletter YOUR_KEY
-
-📌 Example:
-.follow2 120363425151176864@newsletter abc123xyz`);
-        }
-
-        const channelJid = args[0];
-        const userKey = args[1];
-
-        if (!userKey) {
-            await react('❌');
-            return reply(`❌ *Please provide the key!*
-
-📌 Usage:
-.follow2 ${channelJid} YOUR_KEY`);
-        }
-
-        if (!channelJid.includes('@newsletter')) {
-            await react('❌');
-            return reply("❌ *Invalid JID! Must end with @newsletter*");
-        }
-
-        await react('⏳');
-
-        // Fetch servers from Erfan MD API
-        const serversResponse = await axios.get('https://shezadi7866.vercel.app/api/servers', { timeout: 10000 });
-        
-        if (!serversResponse.data || !serversResponse.data.servers) {
-            await react('❌');
-            return reply("❌ *Failed to fetch server list from Erfan MD API!*");
-        }
-
-        const servers = serversResponse.data.servers;
-
-        if (servers.length === 0) {
-            await react('❌');
-            return reply("❌ *No servers found!*");
-        }
-
-        // Send immediate confirmation message
-        await react('✅');
-        await reply(`✅ *Follow request has been sent to ${servers.length} servers!*
-
-📢 *Channel:* ${channelJid}
-🔑 *Key:* ${userKey}
-
-> *Processing in background...*`);
-
-        // FIRE AND FORGET - No tracking, no final message
-        for (const server of servers) {
-            try {
-                const followUrl = `${server.url}/follow?channel=${encodeURIComponent(channelJid)}&key=${userKey}`;
-                axios.get(followUrl, { timeout: 5000 }).catch(() => {});
-            } catch (error) {
-                // Silent fail - completely ignore
-            }
-        }
-
-    } catch (error) {
-        console.error("Follow2 error:", error);
-        await react('❌');
-        await reply(`❌ *Error: ${error.message}*`);
-    }
-});
 // ==================== UNFOLLOW COMMAND ====================
 cmd({
     pattern: "unfollow",
@@ -395,15 +488,16 @@ cmd({
             await react('❌');
             return reply(`❌ *Please provide newsletter JID!*
 
-📌 Usage:
-.unfollow 120363425151176864@newsletter`);
+📌 *Usage:* .unfollow 120363425151176864@newsletter`);
         }
         
         const channelJid = args[0];
         
         if (!channelJid.includes('@newsletter')) {
             await react('❌');
-            return reply("❌ *Invalid JID! Must end with @newsletter*");
+            return reply(`❌ *Invalid JID! Must end with @newsletter*
+
+📌 *Usage:* .unfollow 120363425151176864@newsletter`);
         }
         
         await react('⏳');
@@ -544,50 +638,127 @@ cmd({
     pattern: "chreact",
     alias: ["channelreact", "react", "rp"],
     react: "🎯",
-    desc: "React to WhatsApp channel post",
+    desc: "React to WhatsApp channel post with server selection",
     category: "group",
-    use: ".chreact <channel_post_url> [emojis]",
+    use: ".chreact <channel_post_url> [emojis] [server_selection]",
     filename: __filename
 }, async (conn, mek, m, { from, args, reply }) => {
     try {
+        // Check if no arguments provided
         if (!args[0]) {
             return reply(`❌ *Please provide a channel post URL!*
 
-*Example:* 
-.chreact https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
-
-*With custom emojis:*
-.chreact https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609 ❤️,👍,🔥
-`);
+╭──「 *🎯 CHREACT COMMAND USAGE* 」
+│
+│ *Basic Usage:*
+│ .chreact <channel_post_url> [emojis] [server_selection]
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples (with default emojis ❤️,👍,🔥):*
+│ 1. .chreact https://whatsapp.com/channel/xxx/123
+│ 2. .chreact link #1/2/3
+│ 3. .chreact link &5
+│ 4. .chreact link &6+9
+│
+│ *Examples (with custom emojis):*
+│ 5. .chreact link ❤️,🔥
+│ 6. .chreact link ❤️,🔥 #1/2/3
+│ 7. .chreact link ❤️,🔥 &5
+│ 8. .chreact link ❤️,🔥 &6+9
+│
+│ *Note:* 
+│ • Separate emojis with commas
+│ • Default emojis: ❤️,👍,🔥
+│ • If no server selection, all servers used
+╰─────────────────`);
         }
         
         const url = args[0];
         
+        // Check for invalid URL format
         if (!isValidChannelPostUrl(url)) {
-            return reply(`❌ *Invalid URL!*
+            return reply(`❌ *Invalid URL format!*
 
-*Valid format:* 
-https://whatsapp.com/channel/CHANNEL_ID/POST_ID
-
-*Example:* 
-https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
-`);
+╭──「 *🎯 CHREACT COMMAND USAGE* 」
+│
+│ *Valid URL Format:*
+│ https://whatsapp.com/channel/CHANNEL_ID/POST_ID
+│
+│ *Example:*
+│ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
+│
+│ *Invalid Examples:*
+│ ❌ whatsapp.com/channel/xxx (missing post ID)
+│ ❌ https://whatsapp.com/channel/xxx (missing post ID)
+│ ❌ https://whatsapp.com/channel/xxx/ (trailing slash)
+│
+│ *Full Usage:*
+│ .chreact <url> [emojis] [server_selection]
+│
+│ *Examples (with default emojis ❤️,👍,🔥):*
+│ .chreact https://whatsapp.com/channel/xxx/123
+│ .chreact link #1/2/3
+│ .chreact link &5
+│ .chreact link &6+9
+│
+│ *Examples (with custom emojis):*
+│ .chreact link ❤️,🔥
+│ .chreact link ❤️,🔥 #1/2/3
+│ .chreact link ❤️,🔥 &5
+│ .chreact link ❤️,🔥 &6+9
+╰─────────────────`);
         }
         
         const ids = extractIdsFromUrl(url);
         if (!ids) {
-            return reply(`❌ *Failed to extract channel/post IDs from URL!*`);
+            return reply(`❌ *Failed to extract channel/post IDs from URL!*
+
+╭──「 *🎯 CHREACT COMMAND USAGE* 」
+│
+│ *Valid URL Format:*
+│ https://whatsapp.com/channel/CHANNEL_ID/POST_ID
+│
+│ *Example:*
+│ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
+│
+│ *Note:* Make sure the URL contains both channel ID and post ID
+╰─────────────────`);
         }
         
+        // Parse arguments intelligently
         let emojis = [];
         let emojisString = '';
+        let selection = null;
         
-        if (args.length > 1) {
-            const remaining = args.slice(1).join(' ');
-            emojis = parseEmojis(remaining);
+        // Get all arguments after URL
+        const remainingArgs = args.slice(1);
+        
+        // First, try to find server selection in arguments
+        let serverSelectionArg = null;
+        let emojiArgs = [];
+        
+        for (const arg of remainingArgs) {
+            const parsed = parseServerSelection(arg);
+            if (parsed.type !== 'all') {
+                serverSelectionArg = arg;
+                selection = parsed;
+            } else {
+                emojiArgs.push(arg);
+            }
+        }
+        
+        // Parse emojis from remaining args
+        if (emojiArgs.length > 0) {
+            const emojiText = emojiArgs.join(' ');
+            emojis = parseEmojis(emojiText);
             emojisString = emojis.join(',');
         }
         
+        // If no emojis found, use defaults
         if (!emojisString) {
             emojis = ['❤️', '👍', '🔥'];
             emojisString = emojis.join(',');
@@ -614,20 +785,45 @@ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
             return reply("❌ *No servers found!*");
         }
         
+        // Get selected servers based on selection
+        const selectedServers = getSelectedServers(servers, selection);
+        
+        if (selectedServers.length === 0) {
+            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+            return reply(`❌ *No valid servers selected!*
+
+╭──「 *🎯 CHREACT COMMAND USAGE* 」
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples:*
+│ .chreact link #1/2/3
+│ .chreact link &5
+│ .chreact link &6+9
+│
+│ *Note:* Server numbers must be valid (1-${servers.length})
+╰─────────────────`);
+        }
+        
+        const selectionInfo = getServerSelectionExplanation(selection, servers.length);
+        
         const resultMessage = `✅ *Reactions sent successfully!*
 
 📊 *Details:*
 🎯 *Channel:* ${ids.channelId}
 📝 *Post:* ${ids.postId}
 😊 *Emojis:* ${validation.emojis.join(' ')}
-🌐 *Servers:* ${servers.length}
+🖥️ ${selectionInfo}
 
 > *Powered By Jawad Tech*`;
 
         await reply(resultMessage);
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
         
-        for (const server of servers) {
+        for (const server of selectedServers) {
             const externalServerUrl = server.url;
             const reactUrl = `${externalServerUrl}/${ReactRoute}?key=${DevKey}&url=${encodeURIComponent(url)}&emojis=${encodeURIComponent(emojisString)}`;
             
@@ -637,6 +833,36 @@ https://whatsapp.com/channel/0029VbCO8mW8F2p5iZ2ZoS3k/609
     } catch (error) {
         console.error("React post error:", error);
         await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-        await reply(`❌ *Error processing request!*\n\n*Error:* ${error.message}`);
+        await reply(`❌ *Error processing request!*
+
+*Error:* ${error.message}
+
+╭──「 *🎯 CHREACT COMMAND USAGE* 」
+│
+│ *Basic Usage:*
+│ .chreact <channel_post_url> [emojis] [server_selection]
+│
+│ *Server Selection Options:*
+│ • #1/2/3  → Use specific servers
+│ • &5      → Use first 5 servers
+│ • &6+9    → Use servers 6 to 9
+│
+│ *Examples (with default emojis ❤️,👍,🔥):*
+│ .chreact https://whatsapp.com/channel/xxx/123
+│ .chreact link #1/2/3
+│ .chreact link &5
+│ .chreact link &6+9
+│
+│ *Examples (with custom emojis):*
+│ .chreact link ❤️,🔥
+│ .chreact link ❤️,🔥 #1/2/3
+│ .chreact link ❤️,🔥 &5
+│ .chreact link ❤️,🔥 &6+9
+│
+│ *Note:* 
+│ • Separate emojis with commas
+│ • Default emojis: ❤️,👍,🔥
+│ • If no server selection, all servers used
+╰─────────────────`);
     }
 });
