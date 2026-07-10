@@ -1,4 +1,4 @@
-// 
+
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { cmd } from '../command.js';
