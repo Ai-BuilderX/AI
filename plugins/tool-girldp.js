@@ -42,7 +42,7 @@ function getMime(url) {
 cmd({
     pattern: "girldp1",
     desc: "Send girl DP 1",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -63,7 +63,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp2",
     desc: "Send girl DP 2",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -84,7 +84,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp3",
     desc: "Send girl DP 3",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -105,7 +105,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp4",
     desc: "Send girl DP 4",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -126,7 +126,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp5",
     desc: "Send girl DP 5",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -147,7 +147,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp6",
     desc: "Send girl DP 6",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -168,7 +168,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp7",
     desc: "Send girl DP 7",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -189,7 +189,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp8",
     desc: "Send girl DP 8",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -210,7 +210,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp9",
     desc: "Send girl DP 9",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -231,7 +231,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp10",
     desc: "Send girl DP 10",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -252,7 +252,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp11",
     desc: "Send girl DP 11",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -273,7 +273,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp12",
     desc: "Send girl DP 12",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -294,7 +294,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp13",
     desc: "Send girl DP 13",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -315,7 +315,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp14",
     desc: "Send girl DP 14",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -336,7 +336,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp15",
     desc: "Send girl DP 15",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -357,7 +357,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp16",
     desc: "Send girl DP 16",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -378,7 +378,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp17",
     desc: "Send girl DP 17",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -399,7 +399,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp18",
     desc: "Send girl DP 18",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -420,7 +420,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp19",
     desc: "Send girl DP 19",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -441,7 +441,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp20",
     desc: "Send girl DP 20",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -462,7 +462,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp21",
     desc: "Send girl DP 21",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -483,7 +483,7 @@ async (conn, mek, m, { from, reply }) => {
 cmd({
     pattern: "girldp22",
     desc: "Send girl DP 22",
-    category: "girldp",
+    category: "fun",
     react: "🌸",
     filename: __filename
 },
@@ -499,4 +499,5 @@ async (conn, mek, m, { from, reply }) => {
         await reply("Failed to send image. Please try again.");
     }
 });
+
 
